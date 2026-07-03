@@ -56,6 +56,7 @@ function normalizeDeviceProfile(profile) {
     deviceId: String((profile && profile.deviceId) || '').trim(),
     receiverId: String((profile && profile.receiverId) || '').trim(),
     userName: String((profile && profile.userName) || '').trim(),
+    passwordHash: String((profile && profile.passwordHash) || '').trim(),
     lastKnownMode: String((profile && profile.lastKnownMode) || '').trim(),
     lastIp: String((profile && profile.lastIp) || '').trim(),
     updatedAt: String((profile && profile.updatedAt) || nowIso()),

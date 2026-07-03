@@ -383,3 +383,11 @@ export async function changeUserRole(userId, role) {
     body: JSON.stringify({ role })
   });
 }
+
+export async function userLogin(userName, password, mode) {
+  return fetchJson('/api/users/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userName, password, mode })
+  });
+}

@@ -8,16 +8,14 @@ const http = require('http');
 const path = require('path');
 
 const { PORT, DATA_FILE, IMAGE_DIR, BACKUP_DIR, BACKUP_INTERVAL_MS } = require('./constants');
-const { ensureDirSync, getAllLocalIPs, openBrowser } = require('./utils');
+const { ensureDirSync, getAllLocalIPs } = require('./utils');
 const storeMod = require('./store');
+const sessionsMod = require('./sessions');
 const { requestHandler } = require('./routes');
 
 const DATA_FILE_FULL = path.join(__dirname, '..', DATA_FILE);
 const IMAGE_DIR_FULL = path.join(__dirname, '..', IMAGE_DIR);
 const BACKUP_DIR_FULL = path.join(__dirname, '..', BACKUP_DIR);
-
-// Patch DATA_FILE for store (it uses __dirname relative paths)
-storeMod.setDataPaths(DATA_FILE_FULL, IMAGE_DIR_FULL, BACKUP_DIR_FULL);
 
 (async () => {
   ensureDirSync(BACKUP_DIR_FULL);
@@ -26,7 +24,7 @@ storeMod.setDataPaths(DATA_FILE_FULL, IMAGE_DIR_FULL, BACKUP_DIR_FULL);
   await storeMod.backupCurrentJsonIfExists('startup');
   await storeMod.loadStore();
 
-  setInterval(() => storeMod.expirePresenceAndPersistLogout(), 10000);
+  setInterval(() => sessionsMod.expirePresenceAndPersistLogout(), 10000);
   setInterval(() => {
     storeMod.backupCurrentJsonIfExists('hourly').catch(err => {
       console.error('[backup] hourly backup failed:', err.message);
@@ -62,6 +60,6 @@ storeMod.setDataPaths(DATA_FILE_FULL, IMAGE_DIR_FULL, BACKUP_DIR_FULL);
     }
 
     console.log('========================================');
-    openBrowser(receiverUrl);
+    // openBrowser removed — server env, no auto-open
   });
 })();

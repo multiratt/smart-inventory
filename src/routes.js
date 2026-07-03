@@ -9,6 +9,7 @@ const { URL } = require('url');
 const { exec } = require('child_process');
 const fs = require('fs');
 const fsp = require('fs').promises;
+const crypto = require('crypto');
 
 const {
   ADMIN_RECEIVER_ID, IMAGE_DIR,
@@ -469,10 +470,11 @@ function requestHandler(req, res) {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
       let password = '';
       for (let i = 0; i < 8; i++) password += chars.charAt(Math.floor(Math.random() * chars.length));
+      const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
 
       // Generate a unique deviceId for the new user
       const deviceId = `user_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-      const result = sessionsMod.upsertDeviceProfile({ deviceId, userName, mode: role, req, fingerprint: {} });
+      const result = sessionsMod.upsertDeviceProfile({ deviceId, userName, mode: role, req, fingerprint: {}, passwordHash });
       if (result.changed) { bumpStoreVersion(); storeMod.scheduleSave(); }
 
       sessionsPushUserLog('user-created', {
@@ -1206,6 +1208,27 @@ function requestHandler(req, res) {
     syncAction(() => {}, { store: true, dashboard: true });
     broadcastEvent('record_updated', { recordId: id });
     return sendJSON(res, 200, { ok: true, version: storeVersion, dashboardVersion: dashboardVersion });
+  }
+
+  // ── /api/users/login ──────────────────────────────────────────
+  if (req.method === 'POST' && pathname === '/api/users/login') {
+    requestBody(req).then(body => {
+      const json = JSON.parse(body || '{}');
+      const userName = normalizeUserName(json.userName || '');
+      const password = String(json.password || '').trim();
+      const mode = String(json.mode || '').trim(); // 'receiver' or 'sender'
+      if (!userName || !password) return sendJSON(res, 400, { ok: false, error: 'userName and password required' });
+      if (!['receiver', 'sender'].includes(mode)) return sendJSON(res, 400, { ok: false, error: 'mode must be receiver or sender' });
+
+      const user = sessionsMod.findUserByName(userName, mode);
+      if (!user) return sendJSON(res, 401, { ok: false, error: 'User not found' });
+      const hash = crypto.createHash('sha256').update(password).digest('hex');
+      if (user.passwordHash !== hash) return sendJSON(res, 401, { ok: false, error: 'Invalid password' });
+      if (sessionsMod.isUserPaused(user.id)) return sendJSON(res, 403, { ok: false, error: 'Account paused', paused: true });
+      const role = (user.isAdmin || user.role === 'admin') ? 'admin' : 'user';
+      return sendJSON(res, 200, { ok: true, userId: user.id, userName: user.userName, role });
+    }).catch(e => sendJSON(res, 400, { ok: false, error: e.message }));
+    return;
   }
 
   // ── /api/users/:id/pause ─────────────────────────────────────

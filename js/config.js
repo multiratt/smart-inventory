@@ -47,3 +47,44 @@ export function isReceiverPage() {
 export function isDashboardPage() {
   return window.location.pathname === '/dashboard';
 }
+
+// ── Login helpers ─────────────────────────────────────────────────────────────
+export function getCurrentUserRole() {
+  return localStorage.getItem('currentUserRole') || '';
+}
+
+export function getCurrentUserName() {
+  return localStorage.getItem('currentUserName') || '';
+}
+
+export function getCurrentUserId() {
+  return localStorage.getItem('currentUserId') || '';
+}
+
+export function isLoggedIn() {
+  return !!localStorage.getItem('currentUserId');
+}
+
+export function saveLoginSession(user) {
+  localStorage.setItem('currentUserId', user.id || user.deviceId || '');
+  localStorage.setItem('currentUserName', user.name || '');
+  localStorage.setItem('currentUserRole', user.role || 'user');
+  localStorage.setItem('receiver_token', user.token || user.deviceId || '');
+}
+
+export function clearLoginSession() {
+  localStorage.removeItem('currentUserId');
+  localStorage.removeItem('currentUserName');
+  localStorage.removeItem('currentUserRole');
+  localStorage.removeItem('receiver_token');
+}
+
+// isAdminReceiver: true only when role=admin on receiver page
+export function isAdminReceiver() {
+  return isReceiverPage() && getCurrentUserRole() === 'admin';
+}
+
+// isAdminSender: true only when role=admin on sender page
+export function isAdminSender() {
+  return isSenderPage() && getCurrentUserRole() === 'admin';
+}

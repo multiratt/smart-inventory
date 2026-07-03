@@ -1,7 +1,59 @@
-    export async function initReceiver() {
-      let receiverEventSource = null;
+// Receiver page
+import {
+  isAdminReceiver as _configIsAdmin,
+  isLoggedIn,
+  saveLoginSession,
+  getCurrentUserRole,
+  getCurrentUserName,
+  getCurrentUserId,
+} from '../config.js';
+import { userLogin } from '../api.js';
 
-      function connectReceiverSSE() {
+// Define at module scope so template literals can reference it
+const isAdminReceiver = _configIsAdmin;
+
+export async function initReceiver() {
+  let receiverEventSource = null;
+
+  // ── Login screen ────────────────────────────────────────────────────────────────
+  function showLoginScreen(errMsg) {
+    app.innerHTML = `
+      <div class="login-wrap">
+        <div class="login-card">
+          <div class="login-icon">📦</div>
+          <h1 class="login-title">Smart Inventory</h1>
+          <p class="login-sub">กรุณาเข้าสู่ระบบก่อนใช้งาน</p>
+          <div id="loginErrorMsg" class="login-error ${errMsg ? '' : 'hidden'}">${errMsg || ''}</div>
+          <input id="loginUserName" type="text" placeholder="Username" autocomplete="username" />
+          <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+          <button id="loginSubmitBtn" class="primary" style="width:100%;margin-top:8px;">เข้าสู่ระบบ</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('loginSubmitBtn').addEventListener('click', async () => {
+      const u = document.getElementById('loginUserName').value.trim();
+      const p = document.getElementById('loginPassword').value;
+      if (!u || !p) { document.getElementById('loginErrorMsg').textContent = 'กรุณากรอก Username และ Password'; document.getElementById('loginErrorMsg').classList.remove('hidden'); return; }
+      try {
+        const res = await userLogin(u, p, 'receiver');
+        if (res && res.ok === false) throw new Error(res.message || 'Login failed');
+        saveLoginSession(res);
+        initReceiver(); // re-run
+      } catch(e) {
+        document.getElementById('loginErrorMsg').textContent = e.message || 'เข้าสู่ระบบไม่สำเร็จ';
+        document.getElementById('loginErrorMsg').classList.remove('hidden');
+      }
+    });
+    document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click(); });
+    document.getElementById('loginUserName').focus();
+  }
+
+  if (!isLoggedIn()) {
+    showLoginScreen();
+    return;
+  }
+
+  function connectReceiverSSE() {
         if (receiverEventSource) receiverEventSource.close();
         const token = localStorage.getItem('receiver_token') || '';
         receiverEventSource = new EventSource('/api/events?token=' + encodeURIComponent(token));

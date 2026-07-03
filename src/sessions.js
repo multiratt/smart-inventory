@@ -279,6 +279,17 @@ function isUserNameDuplicate(name, deviceId = '', mode = '') {
   return true;
 }
 
+function findUserByName(userName, mode) {
+  const cleanName = normalizeUserName(userName);
+  const cleanMode = normalizeProfileMode(mode || '');
+  if (!cleanName || !cleanMode) return null;
+  const { getStore } = require('./store');
+  const store = getStore();
+  return store.deviceProfiles.find(p =>
+    p.userName === cleanName && p.lastKnownMode === cleanMode
+  ) || null;
+}
+
 function getActiveUsers(senderAlerts, receiverAlerts) {
   const { getAdminInitialized, getAdminReceiverName } = require('./store');
   const now = Date.now();
@@ -650,6 +661,7 @@ module.exports = {
   isEffectiveAdminSession,
   getUserSessionByName,
   isUserNameDuplicate,
+  findUserByName,
   expirePresenceAndPersistLogout,
   markDeletedSession,
   clearDeletedSession,

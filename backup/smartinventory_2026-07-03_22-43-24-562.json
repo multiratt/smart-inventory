@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "cleanGeneration": 0,
+    "adminReceiverName": "",
+    "adminInitialized": false,
+    "lastSyncStatus": "done",
+    "lastSyncTime": "",
+    "storeVersion": 1,
+    "dashboardVersion": 1
+  },
+  "deviceProfiles": [],
+  "deletedSessions": [],
+  "userLogs": [],
+  "records": [],
+  "dashboard": {
+    "imports": [],
+    "activeImportId": "",
+    "settings": {
+      "visibleColumns": [],
+      "importMatchColumn": "",
+      "inventoryMatchField": "selectedText",
+      "matchMode": "exact",
+      "focusRules": [
+        {
+          "column": "",
+          "values": []
+        }
+      ]
+    },
+    "importedRows": [],
+    "inventoryRows": []
+  }
+}

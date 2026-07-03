@@ -1066,3 +1066,61 @@ mark.result-highlight {
   align-items: center;
   gap: 6px;
 }
+
+/* ── Login Screen ──────────────────────────────────────────────────── */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.login-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+.login-icon {
+  font-size: 56px;
+  margin-bottom: 12px;
+}
+.login-title {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  color: var(--text);
+}
+.login-sub {
+  color: var(--text-2);
+  margin: 0 0 24px;
+  font-size: 14px;
+}
+.login-error {
+  background: #fff0f0;
+  border: 1px solid #ffcccc;
+  color: #c00;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  text-align: left;
+}
+.login-card input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+.login-card input:focus {
+  outline: 2px solid var(--primary);
+  border-color: var(--primary);
+}

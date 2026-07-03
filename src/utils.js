@@ -32,6 +32,20 @@ function formatCsvDateTime(iso) {
   try { return new Date(iso).toLocaleString('en-GB'); } catch { return iso || ''; }
 }
 
+function serveFile(res, filePath, contentType) {
+  const fs = require('fs');
+  const path = require('path');
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Server error reading file');
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': contentType });
+    res.end(data);
+  });
+}
+
 function getAllLocalIPs() {
   const ifaces = os.networkInterfaces();
   const results = [];
@@ -141,6 +155,7 @@ module.exports = {
   formatDateForFile,
   formatCsvDateTime,
   getAllLocalIPs,
+  serveFile,
   getClientIP,
   getRequestHostName,
   isLocalDashboardHost,
