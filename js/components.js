@@ -410,3 +410,8 @@ export function buildDashboardTableRow(item, visibleColumns, readonly) {
     </tr>
   `;
 }
+
+// Build revert button for completed records (admin only)
+export function buildRevertButton(recordId) {
+  return `<button class="revert-btn warn" data-revert-id="${recordId}" title="Revert to Review">↩️ Revert</button>`;
+}

@@ -111,7 +111,10 @@ export async function initSender() {
           <div id="scannerModePanel" class="mode-panel">
             <h2 class="section-title">Scanner Record</h2>
             <div class="mini" style="margin-bottom:10px;">Click input and scan with hardware barcode scanner.</div>
-            <input id="scannerInput" class="scanner-input" type="text" inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="Click here and scan..." />
+            <div class="row" style="align-items:center;gap:10px;margin-bottom:10px;">
+              <input id="scannerInput" class="scanner-input" type="text" inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="Click here and scan..." />
+              <span id="scannerReadyIndicator" class="scanner-ready-indicator hidden">📷 Scanner Ready</span>
+            </div>
           </div>
 
           <div id="sendingStatus" class="sending-status"></div>
@@ -533,6 +536,7 @@ function bindSenderEvents() {
         scannerInput.value = '';
         resetScannerMeta();
       }
+      hideScannerReadyIndicator();
       return;
     }
     if ((e.ctrlKey || e.metaKey) && ['v', 'c', 'x', 'a'].includes(String(e.key || '').toLowerCase())) {
@@ -542,6 +546,7 @@ function bindSenderEvents() {
     if (e.key === 'Backspace' || e.key === 'Delete') {
       scannerInput.value = '';
       resetScannerMeta();
+      hideScannerReadyIndicator();
       e.preventDefault();
       return;
     }
@@ -554,19 +559,33 @@ function bindSenderEvents() {
       if (scannerBufferMeta.lastChar === ch) scannerBufferMeta.repeatedRun += 1;
       else scannerBufferMeta.repeatedRun = 1;
       scannerBufferMeta.lastChar = ch;
+      // Show scanner ready indicator after fast typing is detected
+      showScannerReadyIndicator();
     }
   });
+
+  function showScannerReadyIndicator() {
+    const indicator = document.getElementById('scannerReadyIndicator');
+    if (indicator) indicator.classList.remove('hidden');
+  }
+
+  function hideScannerReadyIndicator() {
+    const indicator = document.getElementById('scannerReadyIndicator');
+    if (indicator) indicator.classList.add('hidden');
+  }
 
   scannerInput.addEventListener('input', () => {
     if (currentSenderMode !== 'scanner') return;
     const value = scannerInput.value || '';
     if (!value) {
       resetScannerMeta();
+      hideScannerReadyIndicator();
       return;
     }
     if (/(.)\1\1\1/.test(value)) {
       scannerInput.value = '';
       resetScannerMeta();
+      hideScannerReadyIndicator();
       return;
     }
     queueScannerValidateAndSubmit();
@@ -1063,16 +1082,57 @@ async function submitScannerRecord(forceValue = '') {
   if (!hasMeaningfulText(value)) return;
 
   scannerSubmitting = true;
+  const scannerInput = document.getElementById('scannerInput');
+
+  // Try to find existing record with this barcode
+  try {
+    const params = new URLSearchParams({ search: value, status: 'pending', recordType: 'scanner' });
+    const data = await fetchJson('/api/records?' + params.toString());
+    const items = Array.isArray(data.items) ? data.items : [];
+    const matched = items.find(item => {
+      const text = item.selectedText || '';
+      return text.toLowerCase().includes(value.toLowerCase()) || value.toLowerCase().includes(text.toLowerCase());
+    });
+
+    if (matched) {
+      // Found existing record - auto review it
+      const sendingStatus = document.getElementById('sendingStatus');
+      if (sendingStatus) sendingStatus.textContent = 'Found record, completing...';
+      try {
+        await fetchJson('/api/update-selected-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: matched.id,
+            selectedText: matched.selectedText || value,
+            comment: matched.comment || senderName,
+            completed: true,
+            reviewedBy: senderName,
+            receiverName: senderName
+          })
+        });
+        if (sendingStatus) sendingStatus.textContent = 'Record completed!';
+        await loadSenderHistory(true);
+      } catch (e) {
+        if (sendingStatus) sendingStatus.textContent = 'Failed to complete: ' + e.message;
+      }
+      if (scannerInput) scannerInput.value = '';
+      scannerSubmitting = false;
+      resetScannerMeta();
+      return;
+    }
+  } catch (e) {
+    // Continue with normal submission
+  }
+
   const comment = await requestSenderComment();
   if (comment === null) {
     scannerSubmitting = false;
-    const scannerInput = document.getElementById('scannerInput');
     if (scannerInput) scannerInput.focus();
     return;
   }
 
   const sendingStatus = document.getElementById('sendingStatus');
-  const scannerInput = document.getElementById('scannerInput');
 
   if (sendingStatus) sendingStatus.textContent = 'Sending...';
   if (scannerInput) scannerInput.disabled = true;

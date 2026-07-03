@@ -940,3 +940,105 @@ mark.result-highlight {
     padding: 7px 6px;
   }
 }
+
+/* Paused User Overlay */
+.paused-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+}
+.paused-overlay-content {
+  text-align: center;
+  padding: 40px;
+  max-width: 480px;
+}
+.paused-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+.paused-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.paused-desc {
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Revert Button */
+.revert-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  min-width: auto;
+  border-radius: 8px;
+}
+
+/* Scanner Ready Indicator */
+.scanner-ready-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--success);
+  color: white;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Pause/Resume Buttons */
+.pause-btn, .resume-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  font-weight: 700;
+}
+.pause-btn {
+  background: #f59e0b;
+  color: white;
+}
+.resume-btn {
+  background: #10b981;
+  color: white;
+}
+
+/* User Management */
+.user-management-create-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.user-management-create-form input {
+  flex: 1;
+  min-width: 120px;
+}
+.user-management-create-form select {
+  flex: 0 0 auto;
+}
+.user-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* Team user badge with pause/resume */
+.team-user-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

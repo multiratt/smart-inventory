@@ -2,6 +2,7 @@ const { ADMIN_RECEIVER_ID, OFFLINE_KEEP_MS, ACTIVE_ONLINE_MS } = require('./cons
 const { normalizeUserName, normalizeFreeText, getClientIP, nowIso } = require('./utils');
 
 const userSessions = new Map();
+const pausedUsers = new Set();
 
 function getSessionKey(deviceId) {
   return String(deviceId || '').trim();
@@ -548,8 +549,26 @@ function deleteUserSessionByAdmin(targetRole, targetId, targetName, adminName, s
   return changed;
 }
 
+function pauseUser(userId) {
+  if (!userId) return false;
+  pausedUsers.add(String(userId).trim());
+  return true;
+}
+
+function resumeUser(userId) {
+  if (!userId) return false;
+  pausedUsers.delete(String(userId).trim());
+  return true;
+}
+
+function isUserPaused(userId) {
+  if (!userId) return false;
+  return pausedUsers.has(String(userId).trim());
+}
+
 module.exports = {
   userSessions,
+  pausedUsers,
   getSessionKey,
   registerUserMode,
   touchUserHeartbeat,
@@ -574,5 +593,8 @@ module.exports = {
   normalizeProfileMode,
   isCompatibleMode,
   deleteUserSessionByAdmin,
-  normalizeDeviceProfile
+  normalizeDeviceProfile,
+  pauseUser,
+  resumeUser,
+  isUserPaused
 };

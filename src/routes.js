@@ -31,6 +31,18 @@ const dashboardMod = require('./dashboard');
 const alertsMod = require('./alerts');
 const exportMod = require('./export');
 
+function broadcastEvent(eventType, eventData) {
+  if (!global.__sseClients || !global.__sseClients.length) return;
+  const payload = 'event: ' + eventType + '\ndata: ' + JSON.stringify({ type: eventType, ...eventData }) + '\n\n';
+  for (const client of global.__sseClients) {
+    try {
+      client.res.write(payload);
+    } catch (e) {
+      console.error('SSE write error:', e.message);
+    }
+  }
+}
+
 function requestHandler(req, res) {
   const store = storeMod.getStore();
   const { bumpStoreVersion, bumpDashboardVersion, syncAction } = storeMod;
@@ -1092,6 +1104,74 @@ function requestHandler(req, res) {
   // ── Static pages ──────────────────────────────────────────────
   if (req.method === 'GET' && (pathname === '/' || pathname === '/sender' || pathname === '/receiver' || pathname === '/dashboard')) {
     return serveFile(res, path.join(__dirname, '..', 'index.html'), 'text/html; charset=utf-8');
+  }
+
+  // ── /api/records/:id/revert ─────────────────────────────────
+  if (req.method === 'POST' && pathname.startsWith('/api/records/') && pathname.endsWith('/revert')) {
+    const id = pathname.substring('/api/records/'.length, pathname.length - '/revert'.length - 1);
+    const item = store.records.find(r => r.id === id);
+    if (!item) return sendJSON(res, 404, { ok: false, error: 'Record not found' });
+    if (!item.completed) return sendJSON(res, 400, { ok: false, error: 'Record is not completed' });
+    const actorName = normalizeUserName(parsedUrl.searchParams.get('actorName') || 'admin');
+    const result = storeMod.revertRecord(id);
+    if (!result.ok) return sendJSON(res, 400, { ok: false, error: result.error });
+    alertsMod.pushRecordEvent(id, 'reverted', 'admin', actorName, {});
+    syncAction(() => {}, { store: true, dashboard: true });
+    broadcastEvent('record_updated', { recordId: id });
+    return sendJSON(res, 200, { ok: true, version: storeVersion, dashboardVersion: dashboardVersion });
+  }
+
+  // ── /api/users/:id/pause ─────────────────────────────────────
+  if (req.method === 'POST' && pathname.startsWith('/api/users/') && pathname.endsWith('/pause')) {
+    const userId = pathname.substring('/api/users/'.length, pathname.length - '/pause'.length - 1);
+    sessionsMod.pauseUser(userId);
+    broadcastEvent('user_paused', { userId });
+    return sendJSON(res, 200, { ok: true, version: storeVersion });
+  }
+
+  // ── /api/users/:id/resume ─────────────────────────────────────
+  if (req.method === 'POST' && pathname.startsWith('/api/users/') && pathname.endsWith('/resume')) {
+    const userId = pathname.substring('/api/users/'.length, pathname.length - '/resume'.length - 1);
+    sessionsMod.resumeUser(userId);
+    broadcastEvent('user_resumed', { userId });
+    return sendJSON(res, 200, { ok: true, version: storeVersion });
+  }
+
+  // ── /api/events (SSE) ─────────────────────────────────────────
+  if (req.method === 'GET' && pathname === '/api/events') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+
+    const clientId = Date.now().toString();
+    const client = { id: clientId, res };
+    if (!global.__sseClients) global.__sseClients = [];
+    global.__sseClients.push(client);
+
+    res.write('event: connected\ndata: ' + JSON.stringify({ type: 'connected', clientId }) + '\n\n');
+
+    req.on('close', () => {
+      if (global.__sseClients) {
+        global.__sseClients = global.__sseClients.filter(c => c.id !== clientId);
+      }
+    });
+    return;
+  }
+
+  // ── /api/events/broadcast ────────────────────────────────────
+  if (req.method === 'POST' && pathname === '/api/events/broadcast') {
+    requestBody(req).then(body => {
+      const json = JSON.parse(body || '{}');
+      const eventType = String(json.type || '').trim();
+      const eventData = json.data || {};
+      if (!eventType) return sendJSON(res, 400, { ok: false, error: 'event type required' });
+      broadcastEvent(eventType, eventData);
+      sendJSON(res, 200, { ok: true });
+    }).catch(e => sendJSON(res, 400, { ok: false, error: e.message }));
+    return;
   }
 
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });

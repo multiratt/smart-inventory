@@ -13,10 +13,19 @@
   <link rel="stylesheet" href="css/sender.css" />
   <link rel="stylesheet" href="css/receiver.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
-</head>
 <body>
   <div id="app"></div>
+
   <div id="dashboardColumnFilterPopupHost"></div>
+
+  <!-- Paused user overlay -->
+  <div id="pausedUserOverlay" class="paused-overlay hidden">
+    <div class="paused-overlay-content">
+      <div class="paused-icon">⏸️</div>
+      <div class="paused-title">Waiting Admin Review</div>
+      <div class="paused-desc">Your access has been paused by the administrator. Please wait for further instructions.</div>
+    </div>
+  </div>
 
   <!-- Page detection globals (must be before module scripts) -->
   <script>

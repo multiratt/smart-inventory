@@ -354,6 +354,18 @@ function getStoreVersion() { return storeVersion; }
 function getDashboardVersion() { return dashboardVersion; }
 function getSaveScheduled() { return saveScheduled; }
 
+function revertRecord(recordId) {
+  const s = getStore();
+  const record = s.records.find(r => r.id === recordId);
+  if (!record) return { ok: false, error: 'Record not found' };
+  if (!record.completed) return { ok: false, error: 'Record is not completed' };
+  record.completed = false;
+  record.reviewedBy = '';
+  bumpStoreVersion();
+  scheduleSave();
+  return { ok: true };
+}
+
 module.exports = {
   getStore,
   getCleanGeneration,
@@ -381,5 +393,6 @@ module.exports = {
   normalizeCompareValue,
   normalizeFocusValues,
   normalizeFocusRules,
-  normalizeDashboardSettings
+  normalizeDashboardSettings,
+  revertRecord
 };

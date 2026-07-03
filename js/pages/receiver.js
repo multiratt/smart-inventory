@@ -791,12 +791,19 @@
 
           teamListInline.innerHTML = users.map(s => {
             const isSelf = normalizeStrictUserName(s.name || '') === selfName && s.role === selfRole;
+            const pauseResumeBtn = isAdminReceiver() && !isSelf && s.role !== 'admin' ? (
+              s.paused
+                ? `<button class="resume-btn" data-resume-user="${s.id}" title="Resume user">Resume</button>`
+                : `<button class="pause-btn" data-pause-user="${s.id}" title="Pause user">Pause</button>`
+            ) : '';
             return `
               <button class="team-user-btn" data-user='${encodeURIComponent(JSON.stringify(s))}'>
                 <span class="status-dot ${s.online ? 'status-green' : 'status-red'}"></span>
                 ${roleEmojiHtml(s.role)}
                 <span>${escapeHtml(s.name)}${isSelf ? ' (you)' : ''}</span>
                 ${s.waiting ? '<span class="pill pending wait-small">WAIT</span>' : ''}
+                ${s.paused ? '<span class="pill deleted" style="font-size:10px;padding:2px 6px;">PAUSED</span>' : ''}
+                ${pauseResumeBtn}
               </button>
             `;
           }).join('');
@@ -843,6 +850,44 @@
               freeTeamMessage.value = '';
               teamMessageModal.classList.add('show');
               refreshModalOpenState();
+            };
+          });
+
+
+          teamListInline.querySelectorAll('[data-pause-user]').forEach(btn => {
+            btn.onclick = async (e) => {
+              e.stopPropagation();
+              const userId = btn.getAttribute('data-pause-user');
+              if (!confirm('Pause this user? They will see a waiting screen.')) return;
+              try {
+                await fetchJson('/api/users/' + encodeURIComponent(userId) + '/pause', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({})
+                });
+                showToast('User paused', 'success');
+                await loadTeamUsers(true);
+              } catch (err) {
+                showToast('Pause failed: ' + err.message, 'danger');
+              }
+            };
+          });
+
+          teamListInline.querySelectorAll('[data-resume-user]').forEach(btn => {
+            btn.onclick = async (e) => {
+              e.stopPropagation();
+              const userId = btn.getAttribute('data-resume-user');
+              try {
+                await fetchJson('/api/users/' + encodeURIComponent(userId) + '/resume', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({})
+                });
+                showToast('User resumed', 'success');
+                await loadTeamUsers(true);
+              } catch (err) {
+                showToast('Resume failed: ' + err.message, 'danger');
+              }
             };
           });
 
@@ -1400,12 +1445,12 @@
         containerEl.querySelectorAll('[data-open-id]').forEach(card => {
           card.onclick = (e) => {
             if (e.target.closest('[data-preview-record]')) return;
+            if (e.target.closest('[data-revert-id]')) return;
             const id = card.getAttribute('data-open-id');
             const item = sourceItems.find(x => x.id === id);
             if (item) openModal(item);
           };
         });
-
 
         containerEl.querySelectorAll('[data-preview-record]').forEach(btn => {
           btn.onclick = async (e) => {
@@ -1419,16 +1464,33 @@
             refreshModalOpenState();
           };
         });
+
+        containerEl.querySelectorAll('[data-revert-id]').forEach(btn => {
+          btn.onclick = async (e) => {
+            e.stopPropagation();
+            const recordId = btn.getAttribute('data-revert-id');
+            if (!confirm('Revert this record to pending/review?')) return;
+            try {
+              await fetchJson('/api/records/' + encodeURIComponent(recordId) + '/revert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+              });
+              await loadPendingRecords(true);
+              await loadCompletedRecords(true);
+            } catch (err) {
+              showToast('Revert failed: ' + err.message, 'danger');
+            }
+          };
+        });
       }
-
-
-      function renderReceiverCard(item, completed = false) {
         const typeBadge = renderTypeBadge(item.recordType);
         const statusBadge = completed ? renderReviewedBadge(item) : '';
         const lockBadge = !completed && item.reviewLock ? `<div class="pill locked">Locked: ${escapeHtml(item.reviewLock.receiverName || 'Unknown')}</div>` : '';
         const ownBadge = item.ownRecordBlocked ? `<div class="pill deleted">Own Record</div>` : '';
         const addNewBadge = renderAddNewBadge(item.isAddNew);
         const foundBadge = renderFoundBadge(item);
+        const revertBadge = completed && isAdminReceiver() ? `<button class="revert-btn warn" data-revert-id="${item.id}" title="Revert to Review">↩️ Revert</button>` : '';
 
 
         if (item.recordType === 'scanner') {
@@ -1441,7 +1503,7 @@
                 <div class="mini">Time: ${escapeHtml(formatDateTime(item.timestamp))}</div>
                 ${item.comment ? `<div class="receiver-comment">Comment: ${escapeHtml(item.comment)}</div>` : ''}
                 ${item.selectedSourceText && item.selectedText && item.selectedSourceText !== item.selectedText ? `<div class="mini">Override: ${escapeHtml(item.selectedSourceText)} → ${escapeHtml(item.selectedText)}</div>` : ''}
-                <div class="row badge-row">${typeBadge}${addNewBadge}${foundBadge}${statusBadge}${lockBadge}${ownBadge}</div>
+                <div class="row badge-row">${typeBadge}${addNewBadge}${foundBadge}${statusBadge}${lockBadge}${ownBadge}${revertBadge}</div>
               </div>
             </div>
           `;
@@ -1459,7 +1521,7 @@
               <div class="mini">Time: ${escapeHtml(formatDateTime(item.timestamp))}</div>
               ${item.comment ? `<div class="receiver-comment">Comment: ${escapeHtml(item.comment)}</div>` : ''}
               ${item.selectedSourceText && item.selectedText && item.selectedSourceText !== item.selectedText ? `<div class="mini">Override: ${escapeHtml(item.selectedSourceText)} → ${escapeHtml(item.selectedText)}</div>` : ''}
-              <div class="row badge-row">${typeBadge}${addNewBadge}${foundBadge}${statusBadge}${lockBadge}${ownBadge}</div>
+              <div class="row badge-row">${typeBadge}${addNewBadge}${foundBadge}${statusBadge}${lockBadge}${ownBadge}${revertBadge}</div>
             </div>
           </div>
         `;

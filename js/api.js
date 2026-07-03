@@ -335,3 +335,31 @@ export async function cleanDatabase() {
 export async function exportCompleteZip() {
   window.location.href = '/api/export-complete-zip?requesterRole=admin';
 }
+
+export async function revertRecord(recordId) {
+  return fetchJson('/api/records/' + encodeURIComponent(recordId) + '/revert', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  });
+}
+
+export async function pauseUser(userId) {
+  return fetchJson('/api/users/' + encodeURIComponent(userId) + '/pause', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  });
+}
+
+export async function resumeUser(userId) {
+  return fetchJson('/api/users/' + encodeURIComponent(userId) + '/resume', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  });
+}
+
+export async function checkUserPaused(userId) {
+  return fetchJson('/api/user-paused/' + encodeURIComponent(userId));
+}

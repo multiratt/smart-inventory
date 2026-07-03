@@ -12,7 +12,6 @@
               <button id="dashboardBackBtn" class="icon-btn" title="Back to inventory">📥</button>
               <button id="dashboardProfileBtn" class="user-menu-btn" title="Profile">👤</button>
               ${renderThemeButton()}
-              <button id="dashboardSettingsBtn" class="icon-btn" title="Dashboard settings">⚙️</button>
             </div>
           </div>
         </header>
@@ -723,6 +722,7 @@
                 <div class="sub">Showing import rows and unmatched completed inventory rows.</div>
               </div>
               <div class="row">
+                <button id="dashboardSettingsBtn" class="icon-btn" title="Dashboard settings">⚙️</button>
                 <button id="dashboardExportBtn" class="success">Export XLSX</button>
               </div>
             </div>
