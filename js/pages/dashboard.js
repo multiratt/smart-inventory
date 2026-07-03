@@ -1598,6 +1598,102 @@
       }
 
 
+      function renderUserManagementSection() {
+        if (isDashboardReadOnly()) return '';
+        return `
+          <div id="userManagementSection" class="card" style="margin-top:16px;">
+            <div class="section-title">User Management</div>
+            <div id="userManagementContent">
+              <div class="user-management-header">
+                <div class="section-sub">User List</div>
+                <button id="reloadUsersBtn" class="btn secondary small">Reload</button>
+              </div>
+              <form id="createUserForm" class="user-management-create-form" style="margin-bottom:12px;">
+                <input id="newUsernameInput" type="text" placeholder="Username" required />
+                <select id="newUserRoleSelect">
+                  <option value="sender">Sender</option>
+                  <option value="receiver">Receiver</option>
+                </select>
+                <button type="submit" class="success">Create</button>
+              </form>
+              <div id="userListContainer"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      async function loadUserList() {
+        const data = await getAdminUsers();
+        const container = document.getElementById('userListContainer');
+        if (!container) return;
+        container.innerHTML = data.users.map(u => `
+          <div class="user-list-item">
+            <span>${escapeHtml(u.userName)}</span>
+            <span class="pill">${escapeHtml(u.role)}</span>
+            <span class="pill secondary">${escapeHtml(u.mode)}</span>
+            <button class="change-role-btn" data-user-id="${escapeHtml(u.id)}" data-current-role="${escapeHtml(u.role)}">Change Role</button>
+          </div>
+        `).join('');
+        // Bind change role buttons
+        container.querySelectorAll('.change-role-btn').forEach(btn => {
+          btn.onclick = async () => {
+            const userId = btn.dataset.userId;
+            const currentRole = btn.dataset.currentRole;
+            const newRole = currentRole === 'sender' ? 'receiver' : 'sender';
+            if (!confirm(`Change role from "${currentRole}" to "${newRole}"?`)) return;
+            try {
+              await changeUserRole(userId, newRole);
+              showToast('Role updated', 'success');
+              loadUserList();
+            } catch(err) { showToast('Change role failed: ' + err.message, 'danger'); }
+          };
+        });
+      }
+
+      function showPasswordModal(userName, password) {
+        const modal = document.createElement('div');
+        modal.className = 'modal show';
+        modal.innerHTML = `
+          <div class="modal-panel" style="max-width:360px;">
+            <div class="modal-head">
+              <div class="section-title">User Created</div>
+              <button id="closePwdModalBtn" class="danger">X</button>
+            </div>
+            <p>Username: <strong>${escapeHtml(userName)}</strong></p>
+            <p>Initial Password: <strong style="font-family:monospace;font-size:18px;">${escapeHtml(password)}</strong></p>
+            <p class="mini" style="color:#f59e0b;">Save this password! It will not be shown again.</p>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelector('#closePwdModalBtn').onclick = () => modal.remove();
+      }
+
+      function initUserManagement() {
+        const createUserForm = document.getElementById('createUserForm');
+        const reloadUsersBtn = document.getElementById('reloadUsersBtn');
+        if (createUserForm) {
+          createUserForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const userName = document.getElementById('newUsernameInput').value.trim();
+            const role = document.getElementById('newUserRoleSelect').value;
+            if (!userName) return;
+            try {
+              const result = await createAdminUser(userName, role);
+              if (result.ok) {
+                document.getElementById('newUsernameInput').value = '';
+                showPasswordModal(userName, result.initialPassword);
+                loadUserList();
+              }
+            } catch(err) { showToast('Create failed: ' + err.message, 'danger'); }
+          };
+        }
+        if (reloadUsersBtn) {
+          reloadUsersBtn.onclick = () => loadUserList();
+        }
+        loadUserList();
+      }
+
+
       async function refreshDashboard(force = false, forceRows = false) {
         if (dashboardState.isRefreshing) return;
         dashboardState.isRefreshing = true;
@@ -1662,8 +1758,10 @@
             dashboardRoot.innerHTML = `
               ${renderDashboardHome(dashboardState.summary)}
               ${renderDashboardTable()}
+              ${renderUserManagementSection()}
             `;
             bindDashboardTable();
+            initUserManagement();
             dashboardState.renderedSummaryVersion = summaryVersion;
             return;
           }

@@ -566,6 +566,79 @@ function isUserPaused(userId) {
   return pausedUsers.has(String(userId).trim());
 }
 
+function getAllUsers() {
+  const { getStore } = require('./store');
+  const store = getStore();
+  const now = Date.now();
+  const users = [];
+
+  // Collect from active sessions
+  for (const [deviceId, s] of userSessions.entries()) {
+    if (!s.userName) continue;
+    const role = getEffectiveSessionRole(s);
+    const profile = store.deviceProfiles.find(x => x.deviceId === deviceId || x.receiverId === deviceId);
+    users.push({
+      id: role === 'admin' ? ADMIN_RECEIVER_ID : deviceId,
+      userName: s.userName || '',
+      deviceId: deviceId,
+      mode: profile ? profile.lastKnownMode || s.currentMode || '' : s.currentMode || '',
+      role: role,
+      createdAt: profile ? profile.updatedAt : (s.firstSeen ? new Date(s.firstSeen).toISOString() : nowIso())
+    });
+  }
+
+  // Collect from deviceProfiles that might not be in active sessions
+  for (const profile of store.deviceProfiles) {
+    if (!profile.userName) continue;
+    const exists = users.some(u => u.deviceId === profile.deviceId);
+    if (exists) continue;
+    const role = profile.lastKnownMode === 'receiver' || profile.lastKnownMode === 'admin' || profile.lastKnownMode === 'dashboard'
+      ? (profile.lastKnownMode === 'dashboard' ? 'admin' : profile.lastKnownMode)
+      : 'sender';
+    users.push({
+      id: role === 'admin' ? ADMIN_RECEIVER_ID : profile.deviceId,
+      userName: profile.userName || '',
+      deviceId: profile.deviceId || '',
+      mode: profile.lastKnownMode || '',
+      role: role,
+      createdAt: profile.updatedAt || nowIso()
+    });
+  }
+
+  return users;
+}
+
+function updateUserRole(userId, newRole) {
+  const { getStore, setSyncPending, bumpStoreVersion, setSyncDone, scheduleSave } = require('./store');
+  const store = getStore();
+  const cleanUserId = String(userId || '').trim();
+  const cleanRole = normalizeProfileMode(newRole) || newRole;
+
+  // Update in userSessions
+  if (cleanUserId === ADMIN_RECEIVER_ID) {
+    // Admin is special - can't change role
+    return false;
+  }
+  const session = userSessions.get(cleanUserId);
+  if (session) {
+    session.currentMode = cleanRole;
+    session.isAdmin = cleanRole === 'admin' || cleanRole === 'dashboard';
+    setSyncPending(); bumpStoreVersion(); setSyncDone(); scheduleSave();
+  }
+
+  // Update in deviceProfiles
+  for (const profile of store.deviceProfiles) {
+    if (profile.deviceId === cleanUserId || profile.receiverId === cleanUserId) {
+      profile.lastKnownMode = cleanRole;
+      profile.updatedAt = nowIso();
+      setSyncPending(); bumpStoreVersion(); setSyncDone(); scheduleSave();
+      return true;
+    }
+  }
+
+  return !!session;
+}
+
 module.exports = {
   userSessions,
   pausedUsers,
@@ -596,5 +669,7 @@ module.exports = {
   normalizeDeviceProfile,
   pauseUser,
   resumeUser,
-  isUserPaused
+  isUserPaused,
+  getAllUsers,
+  updateUserRole
 };

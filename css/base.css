@@ -316,6 +316,30 @@ textarea:disabled, select:disabled, input:disabled {
 .pill.found { background: var(--badge-found-bg); color: var(--badge-found-text); border-color: var(--badge-found-border); }
 .pill.add-new { background: var(--badge-new-bg); color: var(--badge-new-text); border-color: var(--badge-new-border); }
 
+/* User Management */
+.user-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.user-management-create-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.user-management-create-form input[type="text"] { width: 180px; }
+.user-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.user-list-item:last-child { border-bottom: none; }
+.change-role-btn { padding: 2px 8px; font-size: 11px; }
+
 /* Thumbnails */
 .thumb {
   width: 84px;

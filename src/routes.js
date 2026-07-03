@@ -443,6 +443,83 @@ function requestHandler(req, res) {
     return;
   }
 
+  // ── /api/admin/users ───────────────────────────────────────────
+  if (req.method === 'GET' && pathname === '/api/admin/users') {
+    const requesterRole = String(parsedUrl.searchParams.get('requesterRole') || '').trim();
+    const requesterId = String(parsedUrl.searchParams.get('requesterId') || '').trim();
+    if (requesterRole !== 'admin' || requesterId !== ADMIN_RECEIVER_ID) return sendJSON(res, 403, { ok: false, error: 'Admin only' });
+    const users = sessionsMod.getAllUsers();
+    return sendJSON(res, 200, { ok: true, users, version: storeVersion });
+  }
+
+  if (req.method === 'POST' && pathname === '/api/admin/users') {
+    requestBody(req).then(body => {
+      const json = JSON.parse(body || '{}');
+      const requesterRole = String(json.requesterRole || '').trim();
+      const requesterId = String(json.requesterId || '').trim();
+      const userName = normalizeUserName(json.userName || '');
+      const role = String(json.role || '').trim().toLowerCase();
+      if (requesterRole !== 'admin' || requesterId !== ADMIN_RECEIVER_ID) return sendJSON(res, 403, { ok: false, error: 'Admin only' });
+      if (!userName) return sendJSON(res, 400, { ok: false, error: 'userName is required' });
+      if (!['sender', 'receiver'].includes(role)) return sendJSON(res, 400, { ok: false, error: 'role must be sender or receiver' });
+      if (!isRawEnglishOnlyName(userName)) return sendJSON(res, 400, { ok: false, error: 'Username must contain English letters only' });
+      if (sessionsMod.isUserNameDuplicate(userName, '', role)) return sendJSON(res, 400, { ok: false, error: 'Username already exists' });
+
+      // Generate random 8-char alphanumeric password
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      let password = '';
+      for (let i = 0; i < 8; i++) password += chars.charAt(Math.floor(Math.random() * chars.length));
+
+      // Generate a unique deviceId for the new user
+      const deviceId = `user_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+      const result = sessionsMod.upsertDeviceProfile({ deviceId, userName, mode: role, req, fingerprint: {} });
+      if (result.changed) { bumpStoreVersion(); storeMod.scheduleSave(); }
+
+      sessionsPushUserLog('user-created', {
+        role: 'admin', userId: ADMIN_RECEIVER_ID, userName: adminReceiverName || 'ADMIN',
+        targetUserName: userName, targetRole: role
+      });
+
+      sendJSON(res, 200, { ok: true, userName, initialPassword: password, version: storeVersion });
+    }).catch(e => sendJSON(res, 400, { ok: false, error: e.message }));
+    return;
+  }
+
+  if (req.method === 'GET' && pathname.match(/^\/api\/admin\/users\/[^/]+$/)) {
+    const userId = pathname.match(/^\/api\/admin\/users\/([^/]+)$/)[1];
+    const requesterRole = String(parsedUrl.searchParams.get('requesterRole') || '').trim();
+    const requesterId = String(parsedUrl.searchParams.get('requesterId') || '').trim();
+    if (requesterRole !== 'admin' || requesterId !== ADMIN_RECEIVER_ID) return sendJSON(res, 403, { ok: false, error: 'Admin only' });
+    const users = sessionsMod.getAllUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) return sendJSON(res, 404, { ok: false, error: 'User not found' });
+    return sendJSON(res, 200, { ok: true, user, version: storeVersion });
+  }
+
+  if (req.method === 'POST' && pathname.match(/^\/api\/admin\/users\/[^/]+\/change-role$/)) {
+    const match = pathname.match(/^\/api\/admin\/users\/([^/]+)\/change-role$/);
+    const userId = match[1];
+    requestBody(req).then(body => {
+      const json = JSON.parse(body || '{}');
+      const requesterRole = String(json.requesterRole || '').trim();
+      const requesterId = String(json.requesterId || '').trim();
+      const newRole = String(json.role || '').trim().toLowerCase();
+      if (requesterRole !== 'admin' || requesterId !== ADMIN_RECEIVER_ID) return sendJSON(res, 403, { ok: false, error: 'Admin only' });
+      if (!['sender', 'receiver'].includes(newRole)) return sendJSON(res, 400, { ok: false, error: 'role must be sender or receiver' });
+      if (userId === ADMIN_RECEIVER_ID) return sendJSON(res, 400, { ok: false, error: 'Cannot change admin role' });
+      const ok = sessionsMod.updateUserRole(userId, newRole);
+      if (!ok) return sendJSON(res, 404, { ok: false, error: 'User not found' });
+
+      sessionsPushUserLog('user-role-changed', {
+        role: 'admin', userId: ADMIN_RECEIVER_ID, userName: adminReceiverName || 'ADMIN',
+        targetUserId: userId, newRole
+      });
+
+      sendJSON(res, 200, { ok: true, version: storeVersion });
+    }).catch(e => sendJSON(res, 400, { ok: false, error: e.message }));
+    return;
+  }
+
   // ── /api/team-message ───────────────────────────────────────────
   if (req.method === 'POST' && pathname === '/api/team-message') {
     requestBody(req).then(body => {

@@ -363,3 +363,23 @@ export async function resumeUser(userId) {
 export async function checkUserPaused(userId) {
   return fetchJson('/api/user-paused/' + encodeURIComponent(userId));
 }
+
+export async function getAdminUsers() {
+  return fetchJson('/api/admin/users');
+}
+
+export async function createAdminUser(userName, role) {
+  return fetchJson('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userName, role })
+  });
+}
+
+export async function changeUserRole(userId, role) {
+  return fetchJson('/api/admin/users/' + encodeURIComponent(userId) + '/change-role', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role })
+  });
+}
