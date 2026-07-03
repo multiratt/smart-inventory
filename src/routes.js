@@ -469,6 +469,7 @@ function requestHandler(req, res) {
           senderAlerts.set(targetName, { id: `${Date.now()}_${Math.floor(Math.random() * 100000)}`, fromRole, fromId, fromName, targetRole, targetId, targetName, message, time: nowIso() });
           sessionsPushUserLog(messageLogType, { role: fromRole, userId: fromId, userName: fromName, fromName, toName: targetName, targetRole, actorRole: fromRole });
         }, { store: true, dashboard: false });
+        broadcastEvent('sender_alert', { targetName, fromName, message });
         return sendJSON(res, 200, { ok: true, version: storeVersion });
       }
       if (targetRole === 'receiver' || targetRole === 'admin') {
@@ -479,6 +480,7 @@ function requestHandler(req, res) {
           receiverAlerts.set(targetId, { id: `${Date.now()}_${Math.floor(Math.random() * 100000)}`, fromRole, fromId, fromName, targetRole, targetId, targetName, message, time: nowIso() });
           sessionsPushUserLog(messageLogType, { role: fromRole, userId: fromId, userName: fromName, fromName, toName: targetName, targetRole, actorRole: fromRole });
         }, { store: true, dashboard: false });
+        broadcastEvent('receiver_alert', { targetId, fromName, message });
         return sendJSON(res, 200, { ok: true, version: storeVersion });
       }
       if (targetRole === 'all-receivers') {
@@ -490,6 +492,7 @@ function requestHandler(req, res) {
             sessionsPushUserLog(messageLogType, { role: fromRole, userId: fromId, userName: fromName, fromName, toName: target.name, targetRole: target.role, actorRole: fromRole });
           }
         }, { store: true, dashboard: false });
+        broadcastEvent('receiver_alert', { targetId: 'all-receivers', fromName, message });
         return sendJSON(res, 200, { ok: true, delivered: targets.length, version: storeVersion });
       }
       if (targetRole === 'all') {
@@ -505,6 +508,8 @@ function requestHandler(req, res) {
             sessionsPushUserLog(messageLogType, { role: fromRole, userId: fromId, userName: fromName, fromName, toName: target.name, targetRole: target.role, actorRole: fromRole });
           });
         }, { store: true, dashboard: false });
+        broadcastEvent('sender_alert', { targetName: 'all', fromName, message });
+        broadcastEvent('receiver_alert', { targetId: 'all', fromName, message });
         return sendJSON(res, 200, { ok: true, delivered: senderTargets.length + receiverTargets.length, version: storeVersion });
       }
       return sendJSON(res, 400, { ok: false, error: 'Unsupported target role' });
@@ -727,6 +732,7 @@ function requestHandler(req, res) {
           comment
         });
       }, { store: true, dashboard: true });
+      broadcastEvent('record_created', { recordId: id });
       sendJSON(res, 200, { ok: true, id, version: storeMod.storeVersion, dashboardVersion: storeMod.dashboardVersion });
     }).catch(e => sendJSON(res, 400, { ok: false, error: e.message }));
     return;
@@ -749,6 +755,7 @@ function requestHandler(req, res) {
         alertsMod.reviewLocks.delete(json.id);
         alertsMod.pushRecordEvent(json.id, 'deleted', 'admin', normalizeUserName(json.actorName || ''), {});
       }, { store: true, dashboard: true });
+      broadcastEvent('record_deleted', { recordId: json.id });
       sendJSON(res, 200, { ok: true, version: storeMod.storeVersion, dashboardVersion: storeMod.dashboardVersion });
     }).catch(e => sendJSON(res, 400, { ok: false, error: e.message }));
     return;
@@ -795,6 +802,7 @@ function requestHandler(req, res) {
         item.selectedText = String(json.selectedText || '');
         alertsMod.pushRecordEvent(json.id, 'ocr-selected', 'receiver', lock?.receiverName || '', { selectedText: String(json.selectedText || ''), selectedSourceText: String(json.selectedText || '') });
       }, { store: true, dashboard: true });
+      broadcastEvent('record_updated', { recordId: json.id });
       sendJSON(res, 200, { ok: true, version: storeMod.storeVersion, dashboardVersion: storeMod.dashboardVersion });
     }).catch(e => sendJSON(res, 400, { ok: false, error: e.message }));
     return;
@@ -839,6 +847,7 @@ function requestHandler(req, res) {
         }
       }, { store: true, dashboard: true });
       if (newCompleted) alertsMod.reviewLocks.delete(json.id);
+      broadcastEvent('record_updated', { recordId: json.id });
       sendJSON(res, 200, { ok: true, version: storeMod.storeVersion, dashboardVersion: storeMod.dashboardVersion });
     }).catch(e => sendJSON(res, 400, { ok: false, error: e.message }));
     return;
@@ -1014,6 +1023,7 @@ function requestHandler(req, res) {
         inventoryRow.updatedAt = nowIso();
         alertsMod.pushRecordEvent(record.id, 'edited', 'admin', requesterName || 'ADMIN', { selectedText, selectedSourceText: selectedText, comment, reviewedBy: record.reviewedBy || '' });
       }, { store: true, dashboard: true });
+      broadcastEvent('record_updated', { recordId: record.id });
       sendJSON(res, 200, { ok: true, version: storeMod.dashboardVersion });
     }).catch(e => sendJSON(res, 400, { ok: false, error: e.message }));
     return;

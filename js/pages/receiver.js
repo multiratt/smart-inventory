@@ -1,4 +1,25 @@
     export async function initReceiver() {
+      let receiverEventSource = null;
+
+      function connectReceiverSSE() {
+        if (receiverEventSource) receiverEventSource.close();
+        const token = localStorage.getItem('receiver_token') || '';
+        receiverEventSource = new EventSource('/api/events?token=' + encodeURIComponent(token));
+        receiverEventSource.onmessage = (e) => {
+          try {
+            const event = JSON.parse(e.data);
+            if (['record_created', 'record_updated', 'record_deleted'].includes(event.type)) {
+              if (typeof loadPendingRecords === 'function') loadPendingRecords(true);
+              if (typeof loadCompletedRecords === 'function') loadCompletedRecords(true);
+            }
+          } catch(err) {}
+        };
+        receiverEventSource.onerror = () => {
+          receiverEventSource.close();
+          setTimeout(connectReceiverSSE, 5000);
+        };
+      }
+
       app.innerHTML = `
         <header>
           <div class="header-inner">
@@ -2409,6 +2430,12 @@
         checkReceiverRenameStatus();
         receiverHeartbeat();
 
+
+        window.addEventListener('beforeunload', () => {
+          if (receiverEventSource) { receiverEventSource.close(); receiverEventSource = null; }
+        });
+
+        connectReceiverSSE();
 
         setInterval(async () => {
           const typing = hasActiveTypingField();

@@ -1,3 +1,33 @@
+    let eventSource = null;
+
+    function connectSSE() {
+      if (eventSource) eventSource.close();
+      const token = localStorage.getItem('dashboard_token') || '';
+      eventSource = new EventSource('/api/events?token=' + encodeURIComponent(token));
+      eventSource.onmessage = (e) => {
+        try {
+          const event = JSON.parse(e.data);
+          handleServerEvent(event);
+        } catch(err) {}
+      };
+      eventSource.onerror = () => {
+        eventSource.close();
+        setTimeout(connectSSE, 5000);
+      };
+    }
+
+    function handleServerEvent(event) {
+      switch(event.type) {
+        case 'record_created':
+        case 'record_updated':
+        case 'record_deleted':
+          refreshDashboard(true, true);
+          break;
+        case 'sender_alert':
+          break;
+      }
+    }
+
     export async function initDashboard() {
       app.innerHTML = `
         <header>
@@ -1674,6 +1704,11 @@
         closeDashboardColumnFilterPopup();
       });
 
+      window.addEventListener('beforeunload', () => {
+        if (eventSource) { eventSource.close(); eventSource = null; }
+      });
+
+      connectSSE();
 
       (async () => {
         applyDashboardHeaderAccessMode();
