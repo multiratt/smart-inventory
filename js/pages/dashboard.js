@@ -1639,7 +1639,7 @@
           btn.onclick = async () => {
             const userId = btn.dataset.userId;
             const currentRole = btn.dataset.currentRole;
-            const newRole = currentRole === 'sender' ? 'receiver' : 'sender';
+            const newRole = currentRole === 'user' ? 'admin' : 'user';
             if (!confirm(`Change role from "${currentRole}" to "${newRole}"?`)) return;
             try {
               await changeUserRole(userId, newRole);

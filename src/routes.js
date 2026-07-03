@@ -505,7 +505,7 @@ function requestHandler(req, res) {
       const requesterId = String(json.requesterId || '').trim();
       const newRole = String(json.role || '').trim().toLowerCase();
       if (requesterRole !== 'admin' || requesterId !== ADMIN_RECEIVER_ID) return sendJSON(res, 403, { ok: false, error: 'Admin only' });
-      if (!['sender', 'receiver'].includes(newRole)) return sendJSON(res, 400, { ok: false, error: 'role must be sender or receiver' });
+      if (!['user', 'admin'].includes(newRole)) return sendJSON(res, 400, { ok: false, error: 'role must be user or admin' });
       if (userId === ADMIN_RECEIVER_ID) return sendJSON(res, 400, { ok: false, error: 'Cannot change admin role' });
       const ok = sessionsMod.updateUserRole(userId, newRole);
       if (!ok) return sendJSON(res, 404, { ok: false, error: 'User not found' });
