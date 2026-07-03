@@ -1,0 +1,15 @@
+/* Dashboard-specific styles - see components.css for shared dashboard styles */
+@media (max-width: 900px) {
+  .dashboard-filter-grid { grid-template-columns: 1fr; }
+  .dashboard-kv { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .dashboard-table { min-width: 820px; }
+  .dashboard-col-index { width: 84px; min-width: 84px; }
+}
+@media (max-width: 480px) {
+  .dashboard-top-cards { grid-template-columns: 1fr; }
+  .detail-kv { grid-template-columns: 1fr; }
+  .dashboard-detail-images .thumb { height: 140px; }
+  .dashboard-col-index { width: 88px; min-width: 88px; }
+}

@@ -1,0 +1,97 @@
+/* CSS Custom Properties */
+:root {
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --line: #e5e7eb;
+  --text: #111827;
+  --muted: #6b7280;
+  --accent: #3b82f6;
+  --accent-soft: #eff6ff;
+  --success: #10b981;
+  --success-soft: #ecfdf5;
+  --warn: #f59e0b;
+  --warn-soft: #fffbeb;
+  --danger: #ef4444;
+  --danger-soft: #fef2f2;
+  --soft: #f9fafb;
+  --overlay: rgba(15, 23, 42, .45);
+  --highlight: #fde68a;
+  --shadow: 0 10px 28px rgba(15, 23, 42, .06);
+  --radius: 14px;
+
+  --badge-photo-bg: #eff6ff;
+  --badge-photo-text: #2563eb;
+  --badge-photo-border: #bfdbfe;
+
+  --badge-scanner-bg: #f5f3ff;
+  --badge-scanner-text: #7c3aed;
+  --badge-scanner-border: #ddd6fe;
+
+  --badge-import-bg: #ecfeff;
+  --badge-import-text: #0f766e;
+  --badge-import-border: #a5f3fc;
+
+  --badge-found-bg: #ecfdf5;
+  --badge-found-text: #059669;
+  --badge-found-border: #a7f3d0;
+
+  --badge-pending-bg: #fffbeb;
+  --badge-pending-text: #d97706;
+  --badge-pending-border: #fde68a;
+
+  --badge-new-bg: #fdf2f8;
+  --badge-new-text: #be185d;
+  --badge-new-border: #fbcfe8;
+
+  --badge-complete-bg: #eefdf6;
+  --badge-complete-text: #047857;
+  --badge-complete-border: #a7f3d0;
+}
+
+body.dark {
+  --bg: #0f172a;
+  --panel: #111827;
+  --line: #1f2937;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --accent-soft: #0b2440;
+  --success: #34d399;
+  --success-soft: #0a2c22;
+  --warn: #fbbf24;
+  --warn-soft: #3a2a08;
+  --danger: #f87171;
+  --danger-soft: #3a1010;
+  --soft: #0b1220;
+  --overlay: rgba(0, 0, 0, .72);
+  --highlight: #7c4a03;
+  --shadow: 0 12px 30px rgba(0, 0, 0, .28);
+
+  --badge-photo-bg: #0d2340;
+  --badge-photo-text: #93c5fd;
+  --badge-photo-border: #1d4ed8;
+
+  --badge-scanner-bg: #21103d;
+  --badge-scanner-text: #c4b5fd;
+  --badge-scanner-border: #7c3aed;
+
+  --badge-import-bg: #082f33;
+  --badge-import-text: #67e8f9;
+  --badge-import-border: #0891b2;
+
+  --badge-found-bg: #08261d;
+  --badge-found-text: #6ee7b7;
+  --badge-found-border: #059669;
+
+  --badge-pending-bg: #3a2a08;
+  --badge-pending-text: #fcd34d;
+  --badge-pending-border: #d97706;
+
+  --badge-new-bg: #3b1025;
+  --badge-new-text: #f9a8d4;
+  --badge-new-border: #db2777;
+
+  --badge-complete-bg: #08261d;
+  --badge-complete-text: #86efac;
+  --badge-complete-border: #10b981;
+}
